@@ -1,17 +1,19 @@
-function EndTierList({ endTierItems, loadedItems, onExpand }) {
+import { useState } from 'react';
+
+function ItemList({ items, loadedItems, onExpand, hint, dotClass, mode }) {
   return (
     <>
       <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 8 }}>
-        Click to load full production chain
+        {hint}
       </div>
       <ul className="end-tier-list">
-        {endTierItems.map((n) => (
+        {items.map((n) => (
           <li
             key={n.data.id}
             className={loadedItems.has(n.data.id) ? 'loaded' : ''}
-            onClick={() => onExpand(n.data.id)}
+            onClick={() => onExpand(n.data.id, mode)}
           >
-            <div className="tier-dot" />
+            <div className={dotClass} />
             <span>{n.data.item_name}</span>
           </li>
         ))}
@@ -89,9 +91,15 @@ function NodeDetail({ data, nodeIndex, edgesBySource, edgesByTarget, onJumpTo })
   );
 }
 
+const TABS = [
+  { id: 'end-tier', label: 'End-Tier' },
+  { id: 'all', label: 'All Items' },
+];
+
 export default function Sidebar({
   selectedNode,
   endTierItems,
+  allItems,
   loadedItems,
   nodeIndex,
   edgesBySource,
@@ -100,17 +108,13 @@ export default function Sidebar({
   onJumpTo,
   graphLoaded,
 }) {
-  const title = selectedNode ? 'NODE DETAIL' : 'END-TIER ITEMS';
+  const [activeTab, setActiveTab] = useState('end-tier');
 
-  return (
-    <div className="sidebar">
-      <div className="sidebar-header">{title}</div>
-      <div className="sidebar-body">
-        {!graphLoaded ? (
-          <div style={{ fontSize: 11, color: 'var(--text-dim)', lineHeight: 1.6 }}>
-            Loading <code style={{ color: 'var(--accent)' }}>production_graph.graphml</code>…
-          </div>
-        ) : selectedNode ? (
+  if (selectedNode) {
+    return (
+      <div className="sidebar">
+        <div className="sidebar-header">NODE DETAIL</div>
+        <div className="sidebar-body">
           <NodeDetail
             data={selectedNode}
             nodeIndex={nodeIndex}
@@ -118,11 +122,50 @@ export default function Sidebar({
             edgesByTarget={edgesByTarget}
             onJumpTo={onJumpTo}
           />
-        ) : (
-          <EndTierList
-            endTierItems={endTierItems}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="sidebar">
+      <div className="sidebar-header">Products</div>
+      <div className="sidebar-tabs">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            className={`sidebar-tab ${activeTab === t.id ? 'active' : ''}`}
+            onClick={() => setActiveTab(t.id)}
+          >
+            {t.label}
+            <span className="tab-count">
+              {(t.id === 'end-tier' ? endTierItems : allItems).length}
+            </span>
+          </button>
+        ))}
+      </div>
+      <div className="sidebar-body">
+        {!graphLoaded ? (
+          <div style={{ fontSize: 11, color: 'var(--text-dim)', lineHeight: 1.6 }}>
+            Loading <code style={{ color: 'var(--accent)' }}>production_graph.graphml</code>…
+          </div>
+        ) : activeTab === 'end-tier' ? (
+          <ItemList
+            items={endTierItems}
             loadedItems={loadedItems}
             onExpand={onExpand}
+            mode="all"
+            hint="Click to toggle the full production chain"
+            dotClass="tier-dot"
+          />
+        ) : (
+          <ItemList
+            items={allItems}
+            loadedItems={loadedItems}
+            onExpand={onExpand}
+            mode="minimal"
+            hint="Click an item to load a single production chain"
+            dotClass="item-dot"
           />
         )}
       </div>

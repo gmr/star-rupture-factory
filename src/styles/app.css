@@ -156,6 +156,56 @@ button.danger:hover { border-color: var(--accent2); color: var(--accent2); }
   text-transform: uppercase;
 }
 
+.sidebar-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.sidebar-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 8px 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 0;
+  transition: color 0.15s, background 0.15s;
+}
+.sidebar-tab:last-child { border-right: none; }
+.sidebar-tab:hover { color: var(--text); background: rgba(0, 212, 255, 0.04); }
+.sidebar-tab.active {
+  color: var(--accent);
+  background: rgba(0, 212, 255, 0.08);
+  border-radius: 0;
+  border-right: 1px solid var(--border);
+}
+.sidebar-tab.active:last-child { border-right: none; }
+.tab-count {
+  font-size: 9px;
+  color: var(--text-dim);
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 1px 6px;
+}
+.sidebar-tab.active .tab-count { color: var(--accent); }
+
+.item-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  flex-shrink: 0;
+}
+
 .sidebar-body {
   flex: 1;
   overflow-y: auto;
@@ -357,6 +407,49 @@ button.danger:hover { border-color: var(--accent2); color: var(--accent2); }
   pointer-events: none;
   z-index: 5;
   white-space: nowrap;
+}
+
+/* Zoom slider */
+.zoom-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  height: 26px;
+}
+.zoom-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+  width: 8px;
+  text-align: center;
+}
+.zoom-control input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 110px;
+  height: 2px;
+  background: var(--border);
+  border-radius: 1px;
+  outline: none;
+  cursor: pointer;
+}
+.zoom-control input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 14px;
+  background: var(--accent);
+  border-radius: 1px;
+  box-shadow: 0 0 4px rgba(0, 212, 255, 0.6);
+}
+.zoom-control input[type='range']::-moz-range-thumb {
+  width: 10px;
+  height: 14px;
+  background: var(--accent);
+  border-radius: 1px;
+  border: none;
 }
 
 /* Help button + modal */

@@ -76,10 +76,15 @@ export const NODE_STYLES = [
     style: { opacity: 0.12, 'text-opacity': 0.12 },
   },
   {
+    selector: '.search-miss',
+    style: { opacity: 0.15, 'text-opacity': 0.15 },
+  },
+  {
     selector: 'node.hl',
     style: {
-      'border-width': 3,
+      'border-width': 4,
       'border-color': '#00d4ff',
+      'background-blacken': -0.2,
       opacity: 1,
       'text-opacity': 1,
       'z-index': 999,
@@ -127,7 +132,7 @@ export const EDGE_STYLES = [
     style: {
       'line-color': '#00d4ff',
       'target-arrow-color': '#00d4ff',
-      width: 2.5,
+      width: 3,
       opacity: 1,
       'text-opacity': 1,
       'z-index': 999,

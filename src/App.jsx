@@ -31,7 +31,9 @@ export default function App() {
   const [allNodes, setAllNodes] = useState([]);
   const [allEdges, setAllEdges] = useState([]);
   const [indices, setIndices] = useState({ nodeIndex: {}, edgesBySource: {}, edgesByTarget: {} });
-  const [loadedItems, setLoadedItems] = useState(new Set());
+  // Map<itemId, 'all' | 'minimal'> — remember the load mode so collapse keeps
+  // shared nodes between items loaded with different modes.
+  const [loadedItems, setLoadedItems] = useState(new Map());
 
   // UI state
   const [selectedNode, setSelectedNode] = useState(null);
@@ -42,6 +44,7 @@ export default function App() {
   const [stats, setStats] = useState({ visibleNodes: 0, visibleEdges: 0, total: '' });
   const [dropActive, setDropActive] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [zoom, setZoom] = useState(1);
 
   const graphLoaded = allNodes.length > 0;
 
@@ -63,6 +66,27 @@ export default function App() {
     return [...seen.entries()]
       .map(([id, item_name]) => ({ data: { id, item_id: id, item_name } }))
       .sort((a, b) => a.data.item_name.localeCompare(b.data.item_name));
+  }, [allNodes]);
+
+  // Every distinct item produced by any building in the graph, sorted by name.
+  // Powers the sidebar "All Items" tab.
+  const allItems = useMemo(() => {
+    const seen = new Map();
+    for (const n of allNodes) {
+      if (n.data.node_type === 'building' && n.data.item_id && !seen.has(n.data.item_id)) {
+        seen.set(n.data.item_id, {
+          data: {
+            id: n.data.item_id,
+            item_id: n.data.item_id,
+            item_name: n.data.item_name || n.data.item_id,
+            item_type: n.data.item_type,
+          },
+        });
+      }
+    }
+    return [...seen.values()].sort((a, b) =>
+      a.data.item_name.localeCompare(b.data.item_name),
+    );
   }, [allNodes]);
 
   // Index buildings by the item they produce — expansion walks upstream from
@@ -112,7 +136,8 @@ export default function App() {
       // Guard against the instance being torn down mid-layout (StrictMode
       // double-mount, navigation away, etc.).
       if (cyRef.current !== cy || cy.destroyed()) return;
-      cy.fit(undefined, 40);
+      cy.zoom(1);
+      cy.center();
       runningLayoutRef.current = null;
       setLoading({ visible: false, msg: 'READY', percent: 100 });
       setStatusState('ready');
@@ -180,6 +205,9 @@ export default function App() {
       setSelectedNode(null);
       updateStats();
     });
+    // Keep the slider in sync when the user wheel-zooms or fit() runs.
+    setZoom(cy.zoom());
+    cy.on('zoom', () => setZoom(cy.zoom()));
 
     return () => {
       // Stop any in-flight layout so its callbacks don't fire after destroy.
@@ -208,7 +236,7 @@ export default function App() {
       setAllNodes(nodes);
       setAllEdges(edges);
       setIndices(idx);
-      setLoadedItems(new Set());
+      setLoadedItems(new Map());
       setSelectedNode(null);
 
       setStats((s) => ({
@@ -241,45 +269,82 @@ export default function App() {
     })();
   }, [loadGraphML]);
 
-  // Expand the production chain for an end-tier item: walk upstream from
-  // every building that produces it and union the results.
-  const onExpand = useCallback(
-    (itemId) => {
-      if (loadedItems.has(itemId)) return;
-      const cy = cyRef.current;
-      if (!cy) return;
-
+  // Compute the union of node/edge IDs needed to display a production chain.
+  // mode='all' walks upstream from every producer instance (full picture for
+  // end-tier items that have only one anyway); mode='minimal' walks from a
+  // single producer instance — useful for arbitrary mid-chain items where the
+  // 'all' view is N parallel copies of the same recipe.
+  const subtreeFor = useCallback(
+    (itemId, mode = 'all') => {
       const buildingIds = buildingsByItemId.get(itemId) || [];
-      if (buildingIds.length === 0) return;
-
+      const seeds =
+        mode === 'minimal' && buildingIds.length > 0 ? [buildingIds[0]] : buildingIds;
       const nodeIds = new Set();
       const edgeIds = new Set();
-      for (const bid of buildingIds) {
+      for (const bid of seeds) {
         const sub = collectSubtree(bid, indices.edgesBySource, indices.edgesByTarget);
         for (const id of sub.nodeIds) nodeIds.add(id);
         for (const id of sub.edgeIds) edgeIds.add(id);
       }
+      return { nodeIds, edgeIds };
+    },
+    [buildingsByItemId, indices],
+  );
 
-      const existingNodeIds = new Set(cy.nodes().map((n) => n.id()));
-      const existingEdgeIds = new Set(cy.edges().map((e) => e.id()));
+  // Toggle an item's production chain on/off. Removal preserves any nodes/edges
+  // that other still-loaded items also need (using each item's recorded mode).
+  const onExpand = useCallback(
+    (itemId, mode = 'all') => {
+      const cy = cyRef.current;
+      if (!cy) return;
 
-      const newNodes = allNodes.filter(
-        (n) => nodeIds.has(n.data.id) && !existingNodeIds.has(n.data.id),
-      );
-      const newEdges = allEdges.filter(
-        (e) => edgeIds.has(e.data.id) && !existingEdgeIds.has(e.data.id),
-      );
+      if (loadedItems.has(itemId)) {
+        // Collapse: remove this item's exclusive nodes/edges.
+        const loadedMode = loadedItems.get(itemId);
+        const target = subtreeFor(itemId, loadedMode);
+        const keepNodes = new Set();
+        const keepEdges = new Set();
+        for (const [other, otherMode] of loadedItems) {
+          if (other === itemId) continue;
+          const sub = subtreeFor(other, otherMode);
+          for (const id of sub.nodeIds) keepNodes.add(id);
+          for (const id of sub.edgeIds) keepEdges.add(id);
+        }
+        const removeIds = new Set([
+          ...[...target.nodeIds].filter((id) => !keepNodes.has(id)),
+          ...[...target.edgeIds].filter((id) => !keepEdges.has(id)),
+        ]);
+        cy.batch(() => {
+          cy.elements().filter((el) => removeIds.has(el.id())).remove();
+        });
+        setLoadedItems((prev) => {
+          const next = new Map(prev);
+          next.delete(itemId);
+          return next;
+        });
+      } else {
+        // Expand: union the (mode-scoped) subtree's nodes/edges into the canvas.
+        const { nodeIds, edgeIds } = subtreeFor(itemId, mode);
+        if (nodeIds.size === 0) return;
+        const existingNodeIds = new Set(cy.nodes().map((n) => n.id()));
+        const existingEdgeIds = new Set(cy.edges().map((e) => e.id()));
+        const newNodes = allNodes.filter(
+          (n) => nodeIds.has(n.data.id) && !existingNodeIds.has(n.data.id),
+        );
+        const newEdges = allEdges.filter(
+          (e) => edgeIds.has(e.data.id) && !existingEdgeIds.has(e.data.id),
+        );
+        cy.batch(() => {
+          cy.add(newNodes);
+          cy.add(newEdges);
+        });
+        setLoadedItems((prev) => new Map(prev).set(itemId, mode));
+      }
 
-      cy.batch(() => {
-        cy.add(newNodes);
-        cy.add(newEdges);
-      });
-
-      setLoadedItems((prev) => new Set(prev).add(itemId));
       runLayout(layoutName);
       updateStats();
     },
-    [allNodes, allEdges, buildingsByItemId, indices, layoutName, loadedItems, runLayout, updateStats],
+    [allNodes, allEdges, layoutName, loadedItems, runLayout, subtreeFor, updateStats],
   );
 
   const onJumpTo = useCallback((nodeId) => {
@@ -296,18 +361,21 @@ export default function App() {
     });
   }, []);
 
-  // Search dims unmatched nodes.
+  // Search dims unmatched nodes via a class — NOT inline `node.style()`, which
+  // overrides stylesheet rules and would break the tap-highlight (.faded, .hl).
   useEffect(() => {
     const cy = cyRef.current;
     if (!cy) return;
     const q = searchQuery.trim().toLowerCase();
-    if (!q) {
-      cy.nodes().forEach((n) => n.style('opacity', 1));
-      return;
-    }
-    cy.nodes().forEach((n) => {
-      const label = (n.data('label') || '').toLowerCase();
-      n.style('opacity', label.includes(q) ? 1 : 0.15);
+    cy.batch(() => {
+      if (!q) {
+        cy.nodes().removeClass('search-miss');
+        return;
+      }
+      cy.nodes().forEach((n) => {
+        const label = (n.data('label') || '').toLowerCase();
+        n.toggleClass('search-miss', !label.includes(q));
+      });
     });
   }, [searchQuery]);
 
@@ -368,6 +436,15 @@ export default function App() {
         onFit={() => cyRef.current?.fit(undefined, 40)}
         onReset={onReset}
         onHelp={() => setHelpOpen(true)}
+        zoom={zoom}
+        onZoomChange={(z) => {
+          const cy = cyRef.current;
+          if (!cy) return;
+          cy.zoom({
+            level: z,
+            renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 },
+          });
+        }}
       />
 
       <div className="main">
@@ -390,6 +467,7 @@ export default function App() {
           graphLoaded={graphLoaded}
           selectedNode={selectedNode}
           endTierItems={endTierItems}
+          allItems={allItems}
           loadedItems={loadedItems}
           nodeIndex={indices.nodeIndex}
           edgesBySource={indices.edgesBySource}
