@@ -6,7 +6,7 @@ import { forwardRef } from 'react';
 // "removeChild ... not a child of this node" errors on unmount. Overlays
 // (loading, drop zone, hint) MUST be siblings, not children, of this div.
 const GraphCanvas = forwardRef(function GraphCanvas(
-  { dropActive, hint, children, onDragOver, onDragLeave, onDrop },
+  { dropActive, children, onDragOver, onDragLeave, onDrop },
   ref,
 ) {
   return (
@@ -17,7 +17,6 @@ const GraphCanvas = forwardRef(function GraphCanvas(
         <div className="drop-title">DROP GRAPHML FILE</div>
         <div className="drop-sub">production_graph.graphml</div>
       </div>
-      {hint && <div className="hint">{hint}</div>}
     </div>
   );
 });

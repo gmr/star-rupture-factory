@@ -8,6 +8,7 @@ import Legend from './components/Legend.jsx';
 import LoadingOverlay from './components/LoadingOverlay.jsx';
 import GraphCanvas from './components/GraphCanvas.jsx';
 import HelpDialog from './components/HelpDialog.jsx';
+import EmptyState from './components/EmptyState.jsx';
 
 import { parseGraphML, buildIndices, collectSubtree } from './lib/parseGraphML.js';
 import { ALL_STYLES } from './lib/cytoscapeStyle.js';
@@ -451,16 +452,14 @@ export default function App() {
         <GraphCanvas
           ref={containerRef}
           dropActive={dropActive}
-          hint={
-            graphLoaded && loadedItems.size === 0
-              ? 'Click an end-tier item to load its production chain'
-              : null
-          }
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
           onDrop={onDrop}
         >
           <LoadingOverlay visible={loading.visible} message={loading.msg} percent={loading.percent} />
+          {graphLoaded && !loading.visible && loadedItems.size === 0 && !selectedNode && (
+            <EmptyState />
+          )}
         </GraphCanvas>
 
         <Sidebar
