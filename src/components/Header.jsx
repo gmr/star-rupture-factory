@@ -25,9 +25,7 @@ export default function Header({
   return (
     <header>
       <div className={`status-dot ${statusState}`} />
-      <h1>Star Rupture</h1>
-      <span className="sep">//</span>
-      <h1 style={{ color: 'var(--text-dim)' }}>Optimized Factory Explorer</h1>
+      <h1>Star Rupture Optimized Factory Explorer</h1>
       <div className="toolbar">
         <input
           id="item-search"

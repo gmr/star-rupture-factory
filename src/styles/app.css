@@ -97,7 +97,10 @@ button.danger:hover { border-color: var(--accent2); color: var(--accent2); }
   background: var(--text-dim);
   flex-shrink: 0;
 }
-.status-dot.ready { background: var(--accent3); box-shadow: 0 0 6px var(--accent3); }
+.status-dot.ready {
+  background: #ffa030;
+  box-shadow: 0 0 8px #ffa030, 0 0 14px rgba(255, 160, 48, 0.45);
+}
 .status-dot.loading { background: var(--accent); animation: pulse 1s infinite; }
 
 @keyframes pulse {

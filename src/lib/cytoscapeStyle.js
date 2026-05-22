@@ -9,10 +9,12 @@ export const NODE_STYLES = [
       'text-valign': 'center',
       'text-halign': 'center',
       'text-wrap': 'wrap',
-      'text-max-width': '90px',
-      width: 'label',
-      height: 'label',
-      padding: '6px',
+      'text-max-width': '100px',
+      // Fixed dimensions — width: 'label' / height: 'label' are deprecated in
+      // cytoscape 3.33 and the fallback bounding box was zero-sized, so taps
+      // on visible nodes resolved to background.
+      width: 110,
+      height: 38,
       'border-width': 1,
     },
   },
@@ -97,8 +99,8 @@ export const EDGE_STYLES = [
     selector: 'edge',
     style: {
       width: 1,
-      'line-color': '#1a2d44',
-      'target-arrow-color': '#1a2d44',
+      'line-color': '#4a6a88',
+      'target-arrow-color': '#4a6a88',
       'target-arrow-shape': 'triangle',
       'curve-style': 'bezier',
       label: 'data(rate_per_min)',
@@ -112,16 +114,16 @@ export const EDGE_STYLES = [
   },
   {
     selector: 'edge[edge_type="output"]',
-    style: { 'line-color': '#1a4a1a', 'target-arrow-color': '#44aa44' },
+    style: { 'line-color': '#3a8a3a', 'target-arrow-color': '#44aa44' },
   },
   {
     selector: 'edge[edge_type="input"]',
-    style: { 'line-color': '#1a2d44', 'target-arrow-color': '#00d4ff' },
+    style: { 'line-color': '#3a8db0', 'target-arrow-color': '#00d4ff' },
   },
   {
     selector: 'edge[edge_type="buffer"]',
     style: {
-      'line-color': '#3a2a0a',
+      'line-color': '#a67328',
       'target-arrow-color': '#cc8833',
       'line-style': 'dashed',
       'line-dash-pattern': [4, 3],

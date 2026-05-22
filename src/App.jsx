@@ -392,7 +392,7 @@ export default function App() {
     const cy = cyRef.current;
     if (!cy) return;
     cy.elements().remove();
-    setLoadedItems(new Set());
+    setLoadedItems(new Map());
     setSelectedNode(null);
     updateStats();
   }, [updateStats]);

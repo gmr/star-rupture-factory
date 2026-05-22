@@ -35,22 +35,41 @@ export function getLayoutConfig(name) {
       return {
         name: 'cose-bilkent',
         animate: false,
-        idealEdgeLength: 100,
-        nodeRepulsion: 8000,
-        gravity: 0.4,
-        numIter: 2500,
+        nodeDimensionsIncludeLabels: true,
+        idealEdgeLength: 400,
+        nodeRepulsion: 48000,
+        edgeElasticity: 0.6,
+        gravity: 0.075,
+        gravityRange: 9,
+        numIter: 7000,
+        tile: true,
+        tilingPaddingVertical: 60,
+        tilingPaddingHorizontal: 60,
       };
     case 'cose':
       return {
         name: 'cose',
         animate: false,
-        idealEdgeLength: 80,
-        nodeRepulsion: 400000,
-        gravity: 1,
-        numIter: 1000,
+        nodeDimensionsIncludeLabels: true,
+        idealEdgeLength: 400,
+        // cose's repulsion is on a much larger numeric scale than cose-bilkent's;
+        // bumped roughly proportionally for the same "loose" feel.
+        nodeRepulsion: 1600000,
+        edgeElasticity: 100,
+        gravity: 0.25,
+        numIter: 2000,
+        nestingFactor: 1.2,
+        componentSpacing: 100,
       };
     case 'grid':
-      return { name: 'grid', animate: false, avoidOverlap: true, padding: 20 };
+      return {
+        name: 'grid',
+        animate: false,
+        avoidOverlap: true,
+        padding: 40,
+        spacingFactor: 2,
+        nodeDimensionsIncludeLabels: true,
+      };
     case 'breadthfirst':
     default:
       return {
