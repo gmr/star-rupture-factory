@@ -1,11 +1,13 @@
+// Swatches are sourced from the same CSS custom properties the cytoscape
+// stylesheet reads, so the legend tracks the active theme automatically.
 const ENTRIES = [
-  { label: 'Raw', bg: '#1e5c3a', border: '#39ff14' },
-  { label: 'Processed', bg: '#5c4a1e', border: '#ffcc44' },
-  { label: 'Component', bg: '#1e3a5c', border: '#00d4ff' },
-  { label: 'Material', bg: '#3a1e5c', border: '#aa88ff' },
-  { label: 'Ammo', bg: '#5c1e1e', border: '#ff6b35' },
-  { label: 'Building', bg: '#1e3a1e', border: '#44aa44' },
-  { label: 'Storage Depot', bg: '#3a2a0a', border: '#cc8833' },
+  { label: 'Raw', bg: 'var(--node-raw-bg)', border: 'var(--node-raw-border)' },
+  { label: 'Processed', bg: 'var(--node-processed-bg)', border: 'var(--node-processed-border)' },
+  { label: 'Component', bg: 'var(--node-component-bg)', border: 'var(--node-component-border)' },
+  { label: 'Material', bg: 'var(--node-material-bg)', border: 'var(--node-material-border)' },
+  { label: 'Ammo', bg: 'var(--node-ammo-bg)', border: 'var(--node-ammo-border)' },
+  { label: 'Building', bg: 'var(--node-building-bg)', border: 'var(--node-building-border)' },
+  { label: 'Storage Depot', bg: 'var(--node-depot-bg)', border: 'var(--node-depot-border)' },
 ];
 
 export default function Legend() {
@@ -13,10 +15,11 @@ export default function Legend() {
     <div className="legend">
       <span
         style={{
-          fontSize: 10,
+          fontSize: 14,
           color: 'var(--text-dim)',
           fontFamily: "'Share Tech Mono', monospace",
-          marginRight: 4,
+          letterSpacing: '2px',
+          marginRight: 6,
         }}
       >
         LEGEND

@@ -1,0 +1,140 @@
+{
+  "_meta": {
+    "description": "Star Rupture power-supply, base-core and amplifier reference. Used by the partitioning + power-sizing pass to choose the cheapest generator mix per base and to decide when to upgrade a base core vs. add an amplifier.",
+    "sources": [
+      "data/buildings_and_recipes.json (canonical for power/heat/coreHeatCapacity values used by the existing GraphML)",
+      "Steam Community guide 'StarRupture Base Core Upgrade Guide' (id 3642402585)",
+      "Star Rupture wiki (starrupture.wiki.gg) and starruptureplanner.com guides for build costs and unlock levels"
+    ],
+    "fetched": "2026-05-26",
+    "data_notes": [
+      "Generator power/heat numbers come from data/buildings_and_recipes.json — they are what the existing GraphML uses for each producer/consumer node, so the bookkeeping stays internally consistent.",
+      "Several public guides quote different generator outputs (e.g. wiki lists Wind v.2 as '2,000 MW'); these are not reconciled here. If the in-game values differ, edit this file and regenerate the GraphML.",
+      "Base Core Amplifier v.1 heatCapacity is 20 per the source data; some web guides quote +50. Source data wins for the partitioning algorithm.",
+      "Power is a per-base resource — Star Rupture's 'conductive footprint' system means power does NOT cross base boundaries. The partitioning algorithm sizes generators per base accordingly."
+    ]
+  },
+  "base_core": {
+    "id": "base_core",
+    "name": "Base Core",
+    "levels": [
+      { "level": 0, "heat_capacity": 1000 },
+      { "level": 1, "heat_capacity": 2500 },
+      { "level": 2, "heat_capacity": 4000 },
+      { "level": 3, "heat_capacity": 6000 },
+      {
+        "level": 4,
+        "heat_capacity": 10000,
+        "upgrade_cost": [
+          { "item_id": "meteor_heart", "amount": 70 },
+          { "item_id": "turbine", "amount": 800 },
+          { "item_id": "battery", "amount": 1200 },
+          { "item_id": "hardening_agent", "amount": 2300 },
+          { "item_id": "accumulator", "amount": 800 },
+          { "item_id": "ignitium", "amount": 150 }
+        ]
+      }
+    ],
+    "notes": [
+      "heat_capacity is the cap on summed heat values for all buildings, depots, generators, dispatchers, and receivers placed in this base.",
+      "Upgrade costs for levels 1-3 not yet captured; level 4 is sourced from public upgrade guide.",
+      "Exceeding capacity drops Fire Wave protection — the base goes offline longer after each rupture. Treat the cap as hard for planning purposes."
+    ]
+  },
+  "amplifiers": [
+    {
+      "id": "base_core_amplifier_v1",
+      "name": "Base Core Amplifier v.1",
+      "heat_capacity_bonus": 20,
+      "power_kw": 0,
+      "heat": 0,
+      "cost": [
+        { "item_id": "quartz_building", "amount": 100 }
+      ],
+      "unlock": { "corporation": "Moon Energy", "level": 6 },
+      "notes": "Web guides quote +50 capacity; source data says +20. Source data is canonical for this codebase."
+    },
+    {
+      "id": "base_core_amplifier_v2",
+      "name": "Base Core Amplifier v.2",
+      "heat_capacity_bonus": 250,
+      "power_kw": 0,
+      "heat": 0,
+      "cost": null,
+      "unlock": { "corporation": "Moon Energy", "level": 9 },
+      "notes": "Build cost not yet sourced."
+    }
+  ],
+  "generators": [
+    {
+      "id": "solar_generator_v1",
+      "name": "Solar Generator v.1",
+      "power_kw": 10,
+      "heat": 5,
+      "cost": [
+        { "item_id": "basic_building", "amount": 40 }
+      ],
+      "unlock": { "corporation": "Moon Energy", "level": 1 },
+      "notes": "Baseline generator. Tiny but free of fuel."
+    },
+    {
+      "id": "solar_generator_v2",
+      "name": "Solar Generator v.2",
+      "power_kw": 140,
+      "heat": 20,
+      "cost": [
+        { "item_id": "intermediate_building", "amount": 200 }
+      ],
+      "unlock": { "corporation": "Moon Energy", "level": 8 },
+      "notes": "Source data: 140 kW. Wiki quotes 1000 — treat with skepticism until verified in-game."
+    },
+    {
+      "id": "wind_turbine_v1",
+      "name": "Wind Turbine v.1",
+      "power_kw": 1200,
+      "heat": 100,
+      "cost": [
+        { "item_id": "basic_building", "amount": 400 }
+      ],
+      "unlock": { "corporation": "Moon Energy", "level": 5 },
+      "notes": "Source data: 1200 kW. Wiki/guides quote 200 — discrepancy unresolved."
+    },
+    {
+      "id": "wind_turbine_v2",
+      "name": "Wind Turbine v.2",
+      "power_kw": 3200,
+      "heat": 200,
+      "cost": [
+        { "item_id": "quartz_building", "amount": 170 }
+      ],
+      "unlock": { "corporation": "Moon Energy", "level": 10 },
+      "notes": "Source data: 3200 kW. Wiki quotes 2000 — discrepancy unresolved."
+    },
+    {
+      "id": "combustionpowergenerator",
+      "name": "Chemical Generator",
+      "power_kw": 8200,
+      "heat": 400,
+      "cost": null,
+      "fuel": { "item_id": "basicfuel", "amount_per_min": null },
+      "unlock": null,
+      "notes": [
+        "Source data: 8200 kW power, 400 heat. Some web guides quote much smaller numbers.",
+        "Consumes fuel (presumed basicfuel) but consumption rate not yet captured.",
+        "Highest heat per generator — eats a lot of base capacity."
+      ]
+    }
+  ],
+  "generator_selection_order": [
+    "wind_turbine_v2",
+    "wind_turbine_v1",
+    "solar_generator_v2",
+    "solar_generator_v1",
+    "combustionpowergenerator"
+  ],
+  "notes": [
+    "generator_selection_order is a default preference list for picking generators per base: try larger/cheaper-per-kW first, fall back as unlock prerequisites or heat budget fail.",
+    "The partitioning algorithm should pack production buildings into bases first (respecting heat caps), then size generators for each base's summed kW demand, then re-check that generators themselves fit in the remaining heat budget. If a base's generators bust the budget, either upgrade the base level, add amplifiers, or split the base.",
+    "Power across base boundaries is not supported in-game — each base needs its own generator mix. Cross-base item movement uses Cargo Dispatcher → Cargo Receiver pairs (see data/transport.json)."
+  ]
+}

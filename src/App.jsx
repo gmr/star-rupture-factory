@@ -9,13 +9,15 @@ import LoadingOverlay from './components/LoadingOverlay.jsx';
 import GraphCanvas from './components/GraphCanvas.jsx';
 import HelpDialog from './components/HelpDialog.jsx';
 import EmptyState from './components/EmptyState.jsx';
+import BuildPlan from './components/BuildPlan.jsx';
 
 import { parseGraphML, buildIndices, collectSubtree } from './lib/parseGraphML.js';
-import { ALL_STYLES } from './lib/cytoscapeStyle.js';
+import { buildStyles } from './lib/cytoscapeStyle.js';
 import {
   registerPlugins,
   getLayoutConfig,
 } from './lib/cytoscapeSetup.js';
+import { useTheme } from './lib/useTheme.js';
 
 registerPlugins();
 
@@ -32,6 +34,7 @@ export default function App() {
   const [allNodes, setAllNodes] = useState([]);
   const [allEdges, setAllEdges] = useState([]);
   const [indices, setIndices] = useState({ nodeIndex: {}, edgesBySource: {}, edgesByTarget: {} });
+  const [factoryPlan, setFactoryPlan] = useState(null);
   // Map<itemId, 'all' | 'minimal'> — remember the load mode so collapse keeps
   // shared nodes between items loaded with different modes.
   const [loadedItems, setLoadedItems] = useState(new Map());
@@ -46,6 +49,8 @@ export default function App() {
   const [dropActive, setDropActive] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [viewMode, setViewMode] = useState('graph');
+  const { theme, toggle: toggleTheme } = useTheme();
 
   const graphLoaded = allNodes.length > 0;
 
@@ -165,7 +170,7 @@ export default function App() {
     const cy = cytoscape({
       container: containerRef.current,
       elements: [],
-      style: ALL_STYLES,
+      style: buildStyles(),
       layout: { name: 'preset' },
       minZoom: 0.05,
       maxZoom: 3,
@@ -221,6 +226,20 @@ export default function App() {
     };
   }, [updateStats]);
 
+  // Re-bake the cytoscape stylesheet from CSS variables whenever the theme
+  // changes. CSS variables themselves aren't read by cytoscape — we resolve
+  // them at the document root and pass the rgb values in. Wrapped in a RAF so
+  // the [data-theme] attribute swap has actually painted before we re-read.
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy) return;
+    const id = requestAnimationFrame(() => {
+      if (!cyRef.current || cyRef.current.destroyed()) return;
+      cyRef.current.style().fromJson(buildStyles()).update();
+    });
+    return () => cancelAnimationFrame(id);
+  }, [theme]);
+
   const loadGraphML = useCallback(
     async (xmlText) => {
       setStatusState('loading');
@@ -269,6 +288,20 @@ export default function App() {
       }
     })();
   }, [loadGraphML]);
+
+  // Load the per-base sizing sidecar (independent of the GraphML so a missing
+  // file is non-fatal — Plan view just falls back to a single bucket).
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${import.meta.env.BASE_URL}factory_plan.json`);
+        if (!res.ok) return;
+        setFactoryPlan(await res.json());
+      } catch (_) {
+        // No-op — Plan view handles missing data.
+      }
+    })();
+  }, []);
 
   // Compute the union of node/edge IDs needed to display a production chain.
   // mode='all' walks upstream from every producer instance (full picture for
@@ -446,21 +479,43 @@ export default function App() {
             renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 },
           });
         }}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        theme={theme}
+        onThemeToggle={toggleTheme}
       />
 
       <div className="main">
-        <GraphCanvas
-          ref={containerRef}
-          dropActive={dropActive}
-          onDragOver={onDragOver}
-          onDragLeave={onDragLeave}
-          onDrop={onDrop}
-        >
-          <LoadingOverlay visible={loading.visible} message={loading.msg} percent={loading.percent} />
-          {graphLoaded && !loading.visible && loadedItems.size === 0 && !selectedNode && (
-            <EmptyState />
+        <div className={`stage ${viewMode === 'plan' ? 'plan-view' : 'graph-view'}`}>
+          <GraphCanvas
+            ref={containerRef}
+            dropActive={dropActive}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+          >
+            <LoadingOverlay visible={loading.visible} message={loading.msg} percent={loading.percent} />
+            {graphLoaded && !loading.visible && loadedItems.size === 0 && !selectedNode && (
+              <EmptyState />
+            )}
+          </GraphCanvas>
+
+          {viewMode === 'plan' && (
+            <div className="plan-stage">
+              <BuildPlan
+                loadedItems={loadedItems}
+                nodeIndex={indices.nodeIndex}
+                edgesBySource={indices.edgesBySource}
+                edgesByTarget={indices.edgesByTarget}
+                factoryPlan={factoryPlan}
+                onJumpTo={(id) => {
+                  setViewMode('graph');
+                  requestAnimationFrame(() => onJumpTo(id));
+                }}
+              />
+            </div>
           )}
-        </GraphCanvas>
+        </div>
 
         <Sidebar
           graphLoaded={graphLoaded}

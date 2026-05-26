@@ -3,7 +3,7 @@ import { useState } from 'react';
 function ItemList({ items, loadedItems, onExpand, hint, dotClass, mode }) {
   return (
     <>
-      <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 8 }}>
+      <div style={{ fontSize: 14, color: 'var(--text-dim)', marginBottom: 12, lineHeight: 1.4 }}>
         {hint}
       </div>
       <ul className="end-tier-list">
@@ -146,7 +146,7 @@ export default function Sidebar({
       </div>
       <div className="sidebar-body">
         {!graphLoaded ? (
-          <div style={{ fontSize: 11, color: 'var(--text-dim)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 14, color: 'var(--text-dim)', lineHeight: 1.6 }}>
             Loading <code style={{ color: 'var(--accent)' }}>production_graph.graphml</code>…
           </div>
         ) : activeTab === 'end-tier' ? (

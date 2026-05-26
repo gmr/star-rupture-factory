@@ -21,7 +21,13 @@ export default function Header({
   onHelp,
   zoom,
   onZoomChange,
+  viewMode,
+  onViewModeChange,
+  theme,
+  onThemeToggle,
 }) {
+  const graphActive = viewMode === 'graph';
+  const isLight = theme === 'light';
   return (
     <header>
       <div className={`status-dot ${statusState}`} />
@@ -34,16 +40,41 @@ export default function Header({
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
         />
-        <select value={layoutName} onChange={(e) => onLayoutChange(e.target.value)}>
+        <div className="view-toggle" role="group" aria-label="View mode">
+          <button
+            type="button"
+            className={`view-toggle-btn ${graphActive ? 'active' : ''}`}
+            aria-pressed={graphActive}
+            onClick={() => onViewModeChange('graph')}
+          >
+            Graph
+          </button>
+          <button
+            type="button"
+            className={`view-toggle-btn ${!graphActive ? 'active' : ''}`}
+            aria-pressed={!graphActive}
+            onClick={() => onViewModeChange('plan')}
+          >
+            Plan
+          </button>
+        </div>
+        <select
+          value={layoutName}
+          onChange={(e) => onLayoutChange(e.target.value)}
+          disabled={!graphActive}
+        >
           {LAYOUT_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
             </option>
           ))}
         </select>
-        <button onClick={onRelayout}>Re-Layout</button>
-        <button onClick={onFit}>Fit View</button>
-        <div className="zoom-control" title={`Zoom ${Math.round(zoom * 100)}%`}>
+        <button onClick={onRelayout} disabled={!graphActive}>Re-Layout</button>
+        <button onClick={onFit} disabled={!graphActive}>Fit View</button>
+        <div
+          className={`zoom-control ${!graphActive ? 'disabled' : ''}`}
+          title={`Zoom ${Math.round(zoom * 100)}%`}
+        >
           <span className="zoom-label">−</span>
           <input
             type="range"
@@ -52,10 +83,23 @@ export default function Header({
             value={zoomToSlider(zoom)}
             onChange={(e) => onZoomChange(sliderToZoom(Number(e.target.value)))}
             aria-label="Zoom"
+            disabled={!graphActive}
           />
           <span className="zoom-label">+</span>
         </div>
         <button className="danger" onClick={onReset}>Reset Graph</button>
+        <button
+          type="button"
+          className="theme-toggle"
+          onClick={onThemeToggle}
+          aria-label={`Switch to ${isLight ? 'dark' : 'light'} theme`}
+          title={`Switch to ${isLight ? 'dark' : 'light'} theme`}
+        >
+          <span className="theme-toggle-glyph" aria-hidden="true">
+            {isLight ? '☼' : '☾'}
+          </span>
+          <span className="theme-toggle-label">{isLight ? 'Light' : 'Dark'}</span>
+        </button>
         <button className="help-btn" onClick={onHelp} aria-label="About">?</button>
       </div>
     </header>

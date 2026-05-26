@@ -1,0 +1,128 @@
+{
+  "_meta": {
+    "description": "Star Rupture transport reference — rails plus the Cargo Dispatcher / Cargo Receiver pair. Used to pick optimal connection hardware per edge in the production graph.",
+    "source": "Steam Community guide 'Rail & Transport Guide' (id 3645384098) and General Discussions threads (esp. 832738775777036595 'Cargo Receiver Dispatcher Math'). Capacities are nominal — real throughput depends on item stack size; see notes.",
+    "fetched": "2026-05-26"
+  },
+  "rails": {
+    "tiers": [
+      {
+        "id": "rail_v1",
+        "tier": 1,
+        "name": "Rail v.1",
+        "throughput_per_min": 120,
+        "cost": [
+          { "item_id": "basic_building", "amount": 1 }
+        ],
+        "unlock": {
+          "corporation": "Training Corporation",
+          "level": 2
+        }
+      },
+      {
+        "id": "rail_v2",
+        "tier": 2,
+        "name": "Rail v.2",
+        "throughput_per_min": 240,
+        "cost": [
+          { "item_id": "basic_building", "amount": 3 }
+        ],
+        "unlock": {
+          "corporation": "Clever Robotics",
+          "level": 6
+        }
+      },
+      {
+        "id": "rail_v3",
+        "tier": 3,
+        "name": "Rail v.3",
+        "throughput_per_min": 480,
+        "cost": [
+          { "item_id": "intermediate_building", "amount": 3 }
+        ],
+        "unlock": {
+          "corporation": "Clever Robotics",
+          "level": 11
+        }
+      }
+    ],
+    "bundles": [
+      {
+        "id": "multirail_3",
+        "name": "Multirail 3",
+        "lanes": 3,
+        "cost": [
+          { "item_id": "basic_building", "amount": 10 }
+        ],
+        "unlock": {
+          "corporation": "Clever Robotics",
+          "level": 5
+        },
+        "notes": "Bundles three parallel rails onto a single foundation width. Capacity = lanes × chosen rail tier."
+      },
+      {
+        "id": "multirail_5",
+        "name": "Multirail 5",
+        "lanes": 5,
+        "cost": [
+          { "item_id": "intermediate_building", "amount": 5 }
+        ],
+        "unlock": {
+          "corporation": "Clever Robotics",
+          "level": 10
+        },
+        "notes": "Bundles five parallel rails. Known load-balancing issues in current builds — verify in-game before relying on full theoretical capacity."
+      }
+    ]
+  },
+  "cargo_dispatch": {
+    "_description": "Cargo Dispatcher → Cargo Receiver pairs ship via drone over long distances. Drone packaging takes a fixed 10 s per stack, so throughput depends on item stack size as well as rail tier. The packaging-time floor means dispatchers never reach the rail's nominal speed alone — to saturate a same-tier output rail, run 2 dispatchers per receiver.",
+    "dispatcher": {
+      "id": "package_dispatcher",
+      "name": "Cargo Dispatcher",
+      "power_kw": 40,
+      "heat": 40,
+      "footprint": "4x4 or 4x5",
+      "cost": [
+        { "item_id": "intermediate_building", "amount": 50 }
+      ],
+      "unlock": {
+        "corporation": "Clever Robotics",
+        "level": 7
+      },
+      "package_seconds": 10,
+      "notes": "Packages one stack per cycle. Throughput = stack_size / (load_time + 10 s), where load_time = stack_size / (rail_throughput_per_sec)."
+    },
+    "receiver": {
+      "id": "package_receiver",
+      "name": "Cargo Receiver",
+      "power_kw": 40,
+      "heat": 40,
+      "footprint": "4x4 or 4x5",
+      "cost": [
+        { "item_id": "intermediate_building", "amount": 120 }
+      ],
+      "unlock": {
+        "corporation": "Clever Robotics",
+        "level": 7
+      },
+      "notes": "One receiver can typically be fed by 2 dispatchers; using both receiver outputs can pull 3:1 or 4:1 ratios."
+    },
+    "throughput_table_per_min": {
+      "_description": "Items/min delivered by a single Dispatcher → Receiver pair, by item stack size × feeding rail tier. From the Steam guide's throughput table.",
+      "stack_100":  { "rail_v1": 100.0, "rail_v2": 112.5, "rail_v3": 117.6 },
+      "stack_300":  { "rail_v1": 171.4, "rail_v2": 211.8, "rail_v3": 230.8 },
+      "stack_1000": { "rail_v1": 266.7, "rail_v2": 378.9, "rail_v3": 444.4 }
+    },
+    "recommended_ratios": [
+      { "dispatchers": 2, "receivers": 1, "use": "Saturate a single output rail of the same tier." },
+      { "dispatchers": 3, "receivers": 1, "use": "Saturate both outputs of a single receiver, mid stack sizes." },
+      { "dispatchers": 4, "receivers": 1, "use": "Saturate both outputs at small stack sizes (heavy packaging-time penalty)." }
+    ]
+  },
+  "notes": [
+    "Rail throughput_per_min is the rail itself; the dispatcher pair will not match it unless 2 dispatchers feed each receiver.",
+    "For edge.rate_per_min recommendations: try rails first (smallest tier whose throughput >= rate). For long-distance connections where rails are impractical, fall back to dispatcher/receiver pairs and consult the throughput table by item stack size.",
+    "Item stack size is not currently captured in items_catalog.json — to compute exact dispatcher throughput per edge, that field would need to be added."
+  ]
+}
